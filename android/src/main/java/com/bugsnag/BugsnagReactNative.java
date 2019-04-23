@@ -24,6 +24,7 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableMapKeySetIterator;
+import com.facebook.react.modules.systeminfo.ReactNativeVersion;
 import com.facebook.react.uimanager.ViewManager;
 
 import java.io.IOException;
@@ -387,6 +388,37 @@ class DiagnosticsCallback implements Callback {
         return output;
     }
 
+    // see https://github.com/facebook/react-native/blob/6df2edeb2a33d529e4b13a5b6767f300d08aeb0a/scripts/bump-oss-version.js
+    String retrieveReactNativeVersion() {
+        String major = getStringSafe("major", ReactNativeVersion.VERSION);
+        String minor = getStringSafe("minor", ReactNativeVersion.VERSION);
+        String patch = getStringSafe("patch", ReactNativeVersion.VERSION);
+        String prerelease = getStringSafe("prerelease", ReactNativeVersion.VERSION);
+        StringBuilder sb = new StringBuilder();
+
+        if (major != null) {
+            sb.append(major);
+            sb.append(".");
+        }
+        if (minor != null) {
+            sb.append(minor);
+            sb.append(".");
+        }
+        if (patch != null) {
+            sb.append(patch);
+        }
+        if (prerelease != null) {
+            sb.append("-");
+            sb.append(prerelease);
+        }
+        return sb.toString();
+    }
+
+    String getStringSafe(String key, Map<String, Object> map) {
+        Object obj = map.get("major");
+        return (obj != null) ? obj.toString() : null;
+    }
+
     @Override
     public void beforeNotify(Report report) {
         report.getNotifier().setName(NOTIFIER_NAME);
@@ -394,6 +426,8 @@ class DiagnosticsCallback implements Callback {
         report.getNotifier().setVersion(String.format("%s (Android %s)",
                                                 libraryVersion,
                                                 bugsnagAndroidVersion));
+        
+        report.getError().getMetaData().addToTab("version", "RN", retrieveReactNativeVersion());
 
         if (groupingHash != null && groupingHash.length() > 0)
             report.getError().setGroupingHash(groupingHash);
