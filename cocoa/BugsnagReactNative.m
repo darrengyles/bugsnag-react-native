@@ -1,6 +1,7 @@
 #import "Bugsnag.h"
 #import "BSG_KSCrashC.h"
 #import "BugsnagReactNative.h"
+#import "RCTVersion.h"
 #import <React/RCTConvert.h>
 
 NSString *const BSGInfoPlistKey = @"BugsnagAPIKey";
@@ -265,6 +266,10 @@ RCT_EXPORT_METHOD(startWithOptions:(NSDictionary *)options) {
     config.shouldAutoCaptureSessions = [RCTConvert BOOL:options[@"autoCaptureSessions"]];
     config.automaticallyCollectBreadcrumbs = [RCTConvert BOOL:options[@"automaticallyCollectBreadcrumbs"]];
 
+    [config.metaData addAttribute:@"RN"
+                        withValue:[self retrieveReactNativeVersion]
+                    toTabWithName:@"version"];
+
     [config addBeforeSendBlock:^bool(NSDictionary *_Nonnull rawEventData,
                                      BugsnagCrashReport *_Nonnull report) {
         return !([report.errorClass hasPrefix:@"RCTFatalException"]
@@ -296,6 +301,32 @@ RCT_EXPORT_METHOD(startWithOptions:(NSDictionary *)options) {
         // session to compensate.
         [Bugsnag resumeSession];
     }
+}
+
+- (NSString *)retrieveReactNativeVersion {
+    NSDictionary *versionMap = RCTGetReactNativeVersion();
+    NSString *major = versionMap[@"major"];
+    NSString *minor = versionMap[@"minor"];
+    NSString *patch = versionMap[@"patch"];
+    NSString *prerelease = versionMap[@"prerelease"];
+    NSMutableString *versionString = [NSMutableString new];
+
+    if (major != nil) {
+        [versionString appendString:major];
+        [versionString appendString:@"."];
+    }
+    if (minor != nil) {
+        [versionString appendString:minor];
+        [versionString appendString:@"."];
+    }
+    if (patch != nil) {
+        [versionString appendString:patch];
+    }
+    if (prerelease != nil) {
+        [versionString appendString:@"-"];
+        [versionString appendString:prerelease];
+    }
+    return [NSString stringWithString:versionString];
 }
 
 - (void)setNotifierDetails:(NSString *)packageVersion {
